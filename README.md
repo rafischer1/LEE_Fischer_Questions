@@ -1,8 +1,16 @@
-# LEE Developer Take Home Questions
+# LEE Developer Take Home Questions 👩‍🏫👨🏻‍🏫
+
+Artie Fischer
+
+📧: artiefischer@gmail.com
+
+> The answers to each problem are provided here as both pdf and md files. For problem 1 I have created a node package in order to debug the original file. For a 'side-by-side' comparison I have only made one commit to the `geopositions_error.js` so please refer to the commit histoy for the differentials.
+
+---
 
 ## Coding
 
-1. Please refer to the file linked ​here.​ Please fix any mistakes found in the node.js code. What 3 questions would you ask to be able to fix this code? What assumptions did you make to complete? If you see multiple solutions for a problem please explain why you chose the answer you pursued?
+1. Please refer to the file.​ Please fix any mistakes found in the node.js code. What 3 questions would you ask to be able to fix this code? What assumptions did you make to complete? If you see multiple solutions for a problem please explain why you chose the answer you pursued?
 
 ## Problem Solving
 

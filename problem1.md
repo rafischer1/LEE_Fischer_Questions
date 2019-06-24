@@ -10,7 +10,7 @@
 
 `promise-throttle` limits the amount of promises given a certain amount of requests/time and implementing the Bluebird promise library
 
-`sequelize` is an ORM tool for node and must be imported and initialized which is missing from this file. The first part of the exported file uses the `sequelize` package to define a table 'Geoposition' with the appropriate fields. To fully integrate the package I initialized a database connection and removed the function parameters `(sequelize, Datatypes)` changing each `Datatype` to the `Sequelize` field import type. In order to actually query the table in the options object you have to create a model name by setting the `sequelize.define` method to a variable.
+`sequelize` is an ORM tool for node and must be imported and initialized which is missing from this file (this file represents one model for a larger MVC pattern and it is possible that sequelize is initialized in another file and passed as a parameter when the model is called but for my purposes I have initialized the local db connection). The first part of the exported file uses the `sequelize` package to define a table 'geopositions' with the appropriate fields. To fully integrate the package I initialized a database connection and removed the function parameters `(sequelize, Datatypes)` changing each `Datatype` to the `Sequelize` field import type. In order to actually query the table in the options object you have to create a model name by setting the `sequelize.define` method to a variable.
 
 The `classMethods` defined in the option object of the model format the information from the API call. Logging out the `[table].options.classMethods`:
 
@@ -18,13 +18,13 @@ The `classMethods` defined in the option object of the model format the informat
 { associate: [Function: associate], geocode: [AsyncFunction: geocode] }
 ```
 
-The next big function is the `classMethods.geocode()`. The query parameter is 'sanitized' into the correct format using regex (e.g. `/[^\x00-\x7F]/` is a negated set that makes sure no character from NULL to DEL is present). In the final regex the goal is to reduce any repeated whitespace to a single space so it should be: `...sanitizedAddress.replace(/\s/, '');`
+The next big method is `classMethods.geocode()`. The query parameter is 'sanitized' into the correct format using regex (e.g. `/[^\x00-\x7F]/` is a negated set that makes sure no character from NULL to DEL is present). In the final regex the goal is to reduce any repeated whitespace to a single space so it should be: `...sanitizedAddress.replace(/\s/, '');`
 
-To test this method I have been using the following function call from a separate file:
+To test this model I have been using the following function call from a separate file:
 
 ```js
-const geopositions = require('./app');
-const query = 'test formatting  query';
+const geopositions = require('./geopositions_error');
+const query = 'Testing QUERY 123tESt';
 let result = geopositions.options.classMethods.geocode(query);
 console.log('result:', result);
 ```
@@ -74,7 +74,7 @@ and also in the `address_components` assignment forEach():
   type => (type === 'premise')
 ```
 
-- The use of `.find()` on line 115 is a bit strange because `.find()` takes a callback function to find the position of a matched condition in an array. Unless the `this` is meant to refer to a sequelize `findAll` method in which change to:
+- The use of `.find()` on line 115 is a bit strange because `.find()` takes a callback function to find the position of a matched condition in an array. When `allowPartial` is set to false this cached query is skipped over straight to the Api call. Since there is only a `findAll()` method in sequelize I am guessing it has something to do with not being able to properly refer to the defined table and make the query. Change `this` to the table name `geopositions`. It looks as though `.find()` is deprecated in the sequelize package.
 
 ```js
 // SELECT * FROM geopositons WHERE query = coalescedAddress;
@@ -85,9 +85,9 @@ let cached = await geopositions.findAll({
 });
 ```
 
-I am really not sure about getting through this error. When `allowPartial` is set to false this cached query is skipped over straight to the Api call. Since there is only a `findAll` method in sequelize I am guessing it has something to do with not being able to properly refer to the defined table and make the query. It looks as though `.find` is also deprecated in the sequelize package.
+- Also: in these final instances the `this` is referring to the `classMethods` object which does not contain a `find()` or `create()` method (es5 function declaration of the methods) `<rejected> TypeError: this.find is not a function`. I have been able to get around this error by defining the Model in the initial `sequelize.define` call and using this Model as the query target for both `Model.find()` and `Model.create()`.
 
-- Also: in these final instances the `this` is referring to the `classMethods` object which does not contain a `find()` or `create()` method (es5 function declaration of the methods) `<rejected> TypeError: this.find is not a function`. I have been able to get around this error by defining the Model in the initial `sequelize.define` call and using this Model as the query target for both `Model.find()` and `Model.create()`. [sequealize docs](http://docs.sequelizejs.com/manual/getting-started.html#modeling-a-table)
+[See the Sequealize Documentation on Model Definition and Querying](http://docs.sequelizejs.com/manual/getting-started.html#modeling-a-table)
 
 ### What assumptions did you make to complete?
 
@@ -95,10 +95,10 @@ I am really not sure about getting through this error. When `allowPartial` is se
 
 - That `cached.get()` actually returns a value. I am only familiar with the `.get()` where it accepts a key or string as a parameter
 
-- That this would mostly be a JavaScript syntax solving problem...I must admit I have used Knex as my main ORM for node/express and I have spent much of my time on this problem troubleshooting various versioning issues with the sequelize package in order to establish a local dev postgres database connection. Once established I am able to see that I am indeed querying the database but without the proper formatting of the gmAPI connection I will be unable to refactor the file further.
+- That this would mostly be a JavaScript syntax solving problem! I must admit I have used Knex as my main ORM for node/express and I have spent much of my time on this problem troubleshooting various versioning issues with the sequelize package in order to establish a local dev postgres database connection. Once established I am able to see that I am indeed querying the database but without the proper formatting of the gmAPI connection I will be unable to refactor the file further. This was an excellent exercise in troubleshooting errors with the implementation of a new package. My method of debugging involved working from the file 'top-down' in order to encounter errors in a rational order. This was helped by being able to initialize a db connection locally and, with my logging.js, start to drill into the returned object from the file (`geopositions.options.classMethods...`). The biggest 'trade-off' I made was to export the file as the created table/model name for import throughout the application. This was done to simplify the file and to ensure I could have a defined model name returned from `sequelize.define` method to use as my query tablename. My final sql log output shows that I was able to create the table on the PSQL database and formulate a formatted query. All I need now is a sample query and the Google Api key!
 
 ```sql
-Executing (default): SELECT "id", "query", "formatted_address" AS "formattedAddress", "lat", "lng", "premise", "subpremise", ... "modified" AS "updatedAt" FROM "geopositions" AS "Geoposition" WHERE "Geoposition"."query" = 'test formatting  query';
+Executing: SELECT "id", "query", "formatted_address" AS "formattedAddress", "lat", "lng", "premise", "subpremise", ... "modified" AS "updatedAt" FROM "geopositions" AS "Geoposition" WHERE "Geoposition"."query" = 'TESTINGQUERY 123TEST';
 ```
 
 ---
