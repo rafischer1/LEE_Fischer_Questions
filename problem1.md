@@ -110,6 +110,8 @@ const Promise = require('bluebird');
 const gmAPI = require('../config/google-apis');
 const PromiseThrottle = require('promise-throttle');
 const Sequelize = require('sequelize');
+
+// initialize the database connection to the local dev db
 const sequelize = new Sequelize(
   'postgres://artiefischer@localhost:5432/leedemo'
 );
@@ -316,12 +318,13 @@ const geopositions = sequelize.define(
           }
         });
 
+        // add google api coordinates to the address object
         address.viewportN = result.geometry.viewport.northeast.lat;
         address.viewportE = result.geometry.viewport.northeast.lng;
         address.viewportS = result.geometry.viewport.southwest.lat;
         address.viewportW = result.geometry.viewport.southwest.lng;
 
-        // INSERT INTO TABLE geopositions - - - new address from api call
+        // INSERT INTO TABLE geopositions ... the new address object
         await geopositions.create(address);
         return address;
       }
